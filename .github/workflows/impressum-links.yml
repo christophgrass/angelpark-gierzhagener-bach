@@ -1,0 +1,36 @@
+name: Impressum verlinken
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'impressum.html'
+permissions:
+  contents: write
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Links ergänzen
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in Path('.').glob('*.html'):
+              if p.name == 'impressum.html': continue
+              s=p.read_text(encoding='utf-8')
+              marker='<a href="kontakt.html" onclick="menu(false)">Kontakt & Anfahrt</a>'
+              if marker in s and 'href="impressum.html"' not in s:
+                  s=s.replace(marker, marker+'<a href="impressum.html" onclick="menu(false)">Impressum</a>')
+              # Footer: Impressum unauffällig aber überall erreichbar ergänzen
+              if 'href="impressum.html"' not in s:
+                  s=s.replace('</footer>', '<div class="wrap" style="padding-top:18px;font-size:13px"><a href="impressum.html">Impressum</a></div></footer>')
+              elif '<div class="wrap" style="padding-top:18px;font-size:13px"><a href="impressum.html">Impressum</a></div>' not in s:
+                  s=s.replace('</footer>', '<div class="wrap" style="padding-top:18px;font-size:13px"><a href="impressum.html">Impressum</a></div></footer>')
+              p.write_text(s,encoding='utf-8')
+          PY
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add '*.html'
+          git commit -m "Impressum auf allen Seiten verlinken" || exit 0
+          git push
