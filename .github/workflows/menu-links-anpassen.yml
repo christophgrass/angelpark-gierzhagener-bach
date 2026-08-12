@@ -1,0 +1,47 @@
+name: Menue links oben anpassen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/menu-links-anpassen.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-menu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Menue auf allen HTML-Seiten anpassen
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          old_btn = ".menu-btn{position:fixed;right:18px;bottom:18px;z-index:40;width:58px;height:58px;border:0;border-radius:50%;background:var(--lime);font-size:27px;font-weight:900;box-shadow:0 6px 22px #0006;cursor:pointer}"
+          new_btn = ".menu-btn{position:fixed;left:18px;top:14px;z-index:40;width:48px;height:48px;border:0;border-radius:8px;background:var(--lime);font-size:25px;font-weight:900;box-shadow:0 4px 16px #0006;cursor:pointer}"
+          old_side = ".side{position:fixed;top:0;right:-340px;width:min(340px,90vw);height:100vh;background:var(--dark);color:white;z-index:50;transition:.28s;padding:24px;overflow:auto;box-shadow:-8px 0 28px #0008}.side.open{right:0}"
+          new_side = ".side{position:fixed;top:0;left:-340px;width:min(340px,90vw);height:100vh;background:var(--dark);color:white;z-index:50;transition:.28s;padding:24px;overflow:auto;box-shadow:8px 0 28px #0008}.side.open{left:0}"
+          angeln = '<a href="angeln.html" onclick="menu(false)">Angeln</a>'
+
+          changed = []
+          for p in Path('.').glob('*.html'):
+              s = p.read_text(encoding='utf-8')
+              n = s.replace(old_btn, new_btn).replace(old_side, new_side).replace(angeln, '')
+              if n != s:
+                  p.write_text(n, encoding='utf-8')
+                  changed.append(p.name)
+          print('Geaendert:', ', '.join(changed))
+          PY
+      - name: Aenderungen speichern
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add '*.html'
+          if git diff --cached --quiet; then
+            echo "Keine Aenderungen notwendig"
+          else
+            git commit -m "Menue oben links auf allen Seiten"
+            git push
+          fi
